@@ -25,7 +25,7 @@ import net.runelite.api.MenuAction;
 import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.client.events.ConfigChanged;
-import net.runelite.api.widgets.WidgetInfo;
+import net.runelite.api.widgets.InterfaceID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
@@ -121,7 +121,7 @@ public class WikiLookupPlugin extends Plugin
 	{
 		// Inventory items — trigger on "Examine" for that widget
 		if (event.getOption().equals("Examine")
-			&& event.getActionParam1() == WidgetInfo.INVENTORY.getId())
+			&& (event.getActionParam1() >> 16) == InterfaceID.INVENTORY)
 		{
 			client.createMenuEntry(-1)
 				.setOption(MENU_OPTION)
@@ -185,7 +185,7 @@ public class WikiLookupPlugin extends Plugin
 		BufferedImage icon = itemManager.getImage(canonId);
 
 		// Collect equipment stats on the game thread before going async
-		ItemStats itemStats = itemManager.getItemStats(canonId, false);
+		ItemStats itemStats = itemManager.getItemStats(canonId);
 		ItemStats equippedStats = null;
 		String equippedItemName = null;
 
@@ -198,7 +198,7 @@ public class WikiLookupPlugin extends Plugin
 				Item equipped = equipment.getItem(equipSlot);
 				if (equipped != null && equipped.getId() != -1)
 				{
-					equippedStats = itemManager.getItemStats(equipped.getId(), false);
+					equippedStats = itemManager.getItemStats(equipped.getId());
 					equippedItemName = itemManager.getItemComposition(equipped.getId()).getName();
 				}
 			}
@@ -355,18 +355,4 @@ public class WikiLookupPlugin extends Plugin
 		Graphics2D g = img.createGraphics();
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		g.setColor(new Color(50, 100, 200));
-		g.fillOval(1, 1, 13, 13);
-		g.setColor(Color.WHITE);
-		g.setFont(new Font("SansSerif", Font.BOLD, 11));
-		FontMetrics fm = g.getFontMetrics();
-		g.drawString("?", (16 - fm.stringWidth("?")) / 2, 12);
-		g.dispose();
-		return img;
-	}
-
-	@Provides
-	WikiLookupConfig provideConfig(ConfigManager configManager)
-	{
-		return configManager.getConfig(WikiLookupConfig.class);
-	}
-}
+		g.fillOval(1, 1, 13, 13);
