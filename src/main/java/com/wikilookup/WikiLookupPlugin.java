@@ -370,4 +370,3 @@ public class WikiLookupPlugin extends Plugin
 		return configManager.getConfig(WikiLookupConfig.class);
 	}
 }
-                            
