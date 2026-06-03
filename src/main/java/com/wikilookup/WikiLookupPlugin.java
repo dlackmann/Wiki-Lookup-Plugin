@@ -48,7 +48,6 @@ public class WikiLookupPlugin extends Plugin
 {
 	private static final String MENU_OPTION = "Wiki Lookup";
 
-	// Fetches both the intro extract and the raw wikitext in a single request
 	private static final String WIKI_API = "https://oldschool.runescape.wiki/api.php"
 		+ "?action=query"
 		+ "&prop=extracts|revisions"
@@ -60,12 +59,12 @@ public class WikiLookupPlugin extends Plugin
 
 	private static final String WIKI_BASE_URL = "https://oldschool.runescape.wiki/w/";
 
-	// Wikitext parsing patterns
 	private static final Pattern QUEST_PATTERN =
 		Pattern.compile("\\|\\s*quest\\s*=\\s*([^|\\}\\n]+)", Pattern.CASE_INSENSITIVE);
 	private static final Pattern MEMBERS_PATTERN =
 		Pattern.compile("\\|\\s*members\\s*=\\s*([^|\\}\\n]+)", Pattern.CASE_INSENSITIVE);
-@Inject
+
+	@Inject
 	private Client client;
 
 	@Inject
@@ -119,7 +118,6 @@ public class WikiLookupPlugin extends Plugin
 	@Subscribe
 	public void onMenuEntryAdded(MenuEntryAdded event)
 	{
-		// Inventory items — trigger on "Examine" for that widget
 		if (event.getOption().equals("Examine")
 			&& (event.getActionParam1() >> 16) == InterfaceID.INVENTORY)
 		{
@@ -133,7 +131,6 @@ public class WikiLookupPlugin extends Plugin
 			return;
 		}
 
-		// Ground items (optional)
 		if (config.showOnGroundItems()
 			&& event.getOption().equals("Examine")
 			&& event.getType() == MenuAction.EXAMINE_ITEM_GROUND.getId())
@@ -156,7 +153,6 @@ public class WikiLookupPlugin extends Plugin
 			return;
 		}
 
-		// Resolve item ID from inventory slot (more reliable than identifier)
 		int slot = event.getParam0();
 		ItemContainer inventory = client.getItemContainer(InventoryID.INVENTORY);
 		int itemId = -1;
@@ -178,13 +174,11 @@ public class WikiLookupPlugin extends Plugin
 			return;
 		}
 
-		// Canonicalize handles noted/placeholder variants
 		final int canonId = itemManager.canonicalize(itemId);
 
 		String itemName = itemManager.getItemComposition(canonId).getName();
 		BufferedImage icon = itemManager.getImage(canonId);
 
-		// Collect equipment stats on the game thread before going async
 		ItemStats itemStats = itemManager.getItemStats(canonId);
 		ItemStats equippedStats = null;
 		String equippedItemName = null;
@@ -204,7 +198,6 @@ public class WikiLookupPlugin extends Plugin
 			}
 		}
 
-		// Get GE price and high alch on the game thread
 		final int gePrice = itemManager.getItemPrice(canonId);
 		final int highAlch = (int)(itemManager.getItemComposition(canonId).getPrice() * 0.6f);
 
@@ -224,8 +217,6 @@ public class WikiLookupPlugin extends Plugin
 			finalItemStats, finalEquippedStats, finalEquippedName
 		), "wiki-lookup").start();
 	}
-
-	// ── Wiki fetch ────────────────────────────────────────────────────────────
 
 	private void fetchWikiData(int itemId, String itemName, BufferedImage icon, int gePrice, int highAlch,
 		ItemStats itemStats, ItemStats equippedStats, String equippedItemName)
@@ -268,7 +259,6 @@ public class WikiLookupPlugin extends Plugin
 					: "No description available.";
 				String wikiUrl = WIKI_BASE_URL + encoded;
 
-				// Parse the raw wikitext for structured fields
 				String wikitext = extractWikitext(page);
 				boolean questItem = parseQuestItem(wikitext);
 				boolean members = parseMembers(wikitext);
@@ -286,13 +276,10 @@ public class WikiLookupPlugin extends Plugin
 		{
 			log.error("Error fetching wiki data for {}", itemName, e);
 			SwingUtilities.invokeLater(() ->
-				panel.setError("Error: " + e.getClass().getSimpleName() + " — " + e.getMessage()));
+				panel.setError("Error: " + e.getClass().getSimpleName() + " -- " + e.getMessage()));
 		}
 	}
 
-	// ── Wikitext helpers ──────────────────────────────────────────────────────
-
-	/** Pull raw wikitext from the revisions block, handling both old and new MW formats. */
 	private static String extractWikitext(JsonObject page)
 	{
 		if (!page.has("revisions"))
@@ -305,12 +292,10 @@ public class WikiLookupPlugin extends Plugin
 			return "";
 		}
 		JsonObject rev = revisions.get(0).getAsJsonObject();
-		// Old format: {"*": "..."}
 		if (rev.has("*"))
 		{
 			return rev.get("*").getAsString();
 		}
-		// New format: {"slots": {"main": {"*": "..."}}}
 		if (rev.has("slots"))
 		{
 			JsonObject slots = rev.getAsJsonObject("slots");
@@ -347,12 +332,24 @@ public class WikiLookupPlugin extends Plugin
 		return m.group(1).trim().toLowerCase().startsWith("y");
 	}
 
-	// ── Nav icon ──────────────────────────────────────────────────────────────
-
 	private static BufferedImage buildIcon()
 	{
 		BufferedImage img = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = img.createGraphics();
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		g.setColor(new Color(50, 100, 200));
-		g.fillOval(1, 1, 13, 13);
+		g.fillOval(1, 1, 13, 13);
+		g.setColor(Color.WHITE);
+		g.setFont(new Font("SansSerif", Font.BOLD, 11));
+		FontMetrics fm = g.getFontMetrics();
+		g.drawString("?", (16 - fm.stringWidth("?")) / 2, 12);
+		g.dispose();
+		return img;
+	}
+
+	@Provides
+	WikiLookupConfig provideConfig(ConfigManager configManager)
+	{
+		return configManager.getConfig(WikiLookupConfig.class);
+	}
+}
