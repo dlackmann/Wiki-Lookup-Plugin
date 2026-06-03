@@ -1,7 +1,7 @@
 package com.wikilookup;
 
 import java.awt.image.BufferedImage;
-import net.runelite.http.api.item.ItemStats;
+import net.runelite.client.game.ItemStats;
 
 /**
  * Holds all fetched data for a single item lookup.
